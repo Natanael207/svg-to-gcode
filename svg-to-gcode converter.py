@@ -7,9 +7,9 @@ z_down = 5.0
 draw_feedrate = 1500
 move_feedrate = 3000
 
-bed_size = 256  # Druckbettgröße (mm)
+bed_size = 256  # Print bed size (mm)
 
-# ANSI Escape Code für rote Schrift
+# ANSI escape code for red font
 RED = "\033[91m"
 RESET = "\033[0m"
 
@@ -40,12 +40,12 @@ def convert_svg_to_plotter_gcode(svg_file, output_file, scale, min_x, min_y, x_o
     paths, _, _ = svg2paths2(svg_file)
 
     gcode = []
-    gcode.append("; G-code zum Zeichnen mit Bambu Lab A1")
+    gcode.append("; G-code for drawing with Bambu Lab A1")
     gcode.append("G21 ; mm")
     gcode.append("G90 ; absolut")
     gcode.append("G28 ; home")
 
-    # Variablen für Min/Max in G-Code Koordinaten tracken
+    # Track variables for Min/Max in G-Code coordinates
     gcode_min_x = float('inf')
     gcode_min_y = float('inf')
     gcode_max_x = float('-inf')
@@ -75,7 +75,7 @@ def convert_svg_to_plotter_gcode(svg_file, output_file, scale, min_x, min_y, x_o
 
         gcode.append(f"G1 Z{z_up:.2f} F{move_feedrate}")
 
-        # Min/Max aktualisieren
+        # Update min/max
         for pt in points:
             if pt.real < gcode_min_x:
                 gcode_min_x = pt.real
@@ -87,9 +87,9 @@ def convert_svg_to_plotter_gcode(svg_file, output_file, scale, min_x, min_y, x_o
                 gcode_max_y = pt.imag
 
     gcode += [
-        "G1 Z10 ; Stift ganz hoch",
-        "G28 ; zurück Home",
-        "M84 ; Motoren aus"
+        "G1 Z10 ; Pen all the way up",
+        "G28 ; back Home",
+        "M84 ; Motors off"
     ]
 
     with open(output_file, 'w') as f:
@@ -98,28 +98,28 @@ def convert_svg_to_plotter_gcode(svg_file, output_file, scale, min_x, min_y, x_o
     return gcode_min_x, gcode_max_x, gcode_min_y, gcode_max_y
 
 if __name__ == "__main__":
-    print("✏️ SVG zu G-code (Zeichnen mit Bambu Lab A1)")
+    print("✏️ SVG to G-code (Drawing with Bambu Lab A1)")
 
-    svg_path = input("📂 Pfad zur SVG-Datei eingeben: ").strip().strip('"')
+    svg_path = input("📂 Enter the path to the SVG file: ").strip().strip('"')
     if not Path(svg_path).exists():
-        print("❌ Datei nicht gefunden.")
+        print("❌ File not found.")
         exit(1)
 
-    gcode_name = input("💾 G-code-Dateiname (ohne .gcode): ").strip()
+    gcode_name = input("💾 G-code-file name (without .gcode): ").strip()
     if not gcode_name:
-        print("❌ Kein gültiger Name.")
+        print("❌ No valid Name.")
         exit(1)
 
     paths, _, _ = svg2paths2(svg_path)
     min_x, min_y, max_x, max_y, width, height = get_svg_bounds(paths)
-    print(f"ℹ️ Original SVG Größe: Breite {width:.2f} mm, Höhe {height:.2f} mm")
+    print(f"ℹ️ Original SVG Size: width {width:.2f} mm, height {height:.2f} mm")
 
     try:
-        desired_width = float(input(f"📏 Gewünschte Breite der Zeichnung in mm eingeben (max {bed_size}): ").strip())
+        desired_width = float(input(f"📏 Enter the desired width of the drawing in mm (max {bed_size}): ").strip())
         if desired_width <= 0 or desired_width > bed_size:
             raise ValueError()
     except ValueError:
-        print(f"❌ Ungültige Eingabe. Breite muss zwischen 0 und {bed_size} mm sein.")
+        print(f"❌ Invalid input. Width must be between 0 and {bed_size} mm.")
         exit(1)
 
     scale = desired_width / width
@@ -129,25 +129,25 @@ if __name__ == "__main__":
     x_offset = (bed_size - final_width) / 2
     y_offset = (bed_size - final_height) / 2
 
-    print(f"⚖️ Skalierungsfaktor: {scale:.4f}")
-    print(f"✅ Finale Größe der Zeichnung: Breite {final_width:.2f} mm, Höhe {final_height:.2f} mm")
-    print(f"🖼️ Zeichnung wird zentriert bei X={x_offset:.2f} mm, Y={y_offset:.2f} mm")
+    print(f"⚖️ Scaling factor: {scale:.4f}")
+    print(f"✅ Final size of the drawing: width {final_width:.2f} mm, height {final_height:.2f} mm")
+    print(f"🖼️ Drawing is centered at X={x_offset:.2f} mm, Y={y_offset:.2f} mm")
 
     min_gcode_x, max_gcode_x, min_gcode_y, max_gcode_y = convert_svg_to_plotter_gcode(
         svg_path, Path(svg_path).parent / f"{gcode_name}.gcode",
         scale, min_x, min_y, x_offset, y_offset
     )
 
-    print(f"\n📐 G-code X Bereich: {min_gcode_x:.2f} mm bis {max_gcode_x:.2f} mm")
-    print(f"📐 G-code Y Bereich: {min_gcode_y:.2f} mm bis {max_gcode_y:.2f} mm")
+    print(f"\n📐 G-code X Area: {min_gcode_x:.2f} mm up to {max_gcode_x:.2f} mm")
+    print(f"📐 G-code Y Area: {min_gcode_y:.2f} mm up to {max_gcode_y:.2f} mm")
 
     error = False
     if min_gcode_x < 0 or max_gcode_x > bed_size:
-        print(f"{RED}❌ X-Koordinaten außerhalb des Druckbereichs!{RESET}")
+        print(f"{RED}❌ X-coordinates outside the print area!{RESET}")
         error = True
     if min_gcode_y < 0 or max_gcode_y > bed_size:
-        print(f"{RED}❌ Y-Koordinaten außerhalb des Druckbereichs!{RESET}")
+        print(f"{RED}❌ Y-coordinates outside the print area!{RESET}")
         error = True
 
     if not error:
-        print("✅ Alle Koordinaten liegen innerhalb des Druckbereichs.")
+        print("✅ All coordinates are within the print area.")
